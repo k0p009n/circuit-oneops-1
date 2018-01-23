@@ -20,13 +20,16 @@
 #
 
 instance = node['sql_server']['instance_name']
-
+Chef::Log.info( "instance - #{instance}")
+  
 # Compute service name based on sql server instance name
 service_name = (instance != 'MSSQLSERVER') ? "MSSQL$#{instance}" : instance
+Chef::Log.info( "service_name - #{service_name}")
 
 # Agent name needs to be declared because if you use the SQL Agent, you need
 # to restart both services as the Agent is dependent on the SQL Service
 agent_service_name = (instance == 'MSSQLSERVER') ? 'SQLSERVERAGENT' : "SQLAgent$#{instance}"
+Chef::Log.info( "agent_service_name - #{agent_service_name}")
 
 # Compute registry version based on sql server version
 reg_version =  case node['sql_server']['version'].to_s # to_s to make sure someone didn't pass us an int
@@ -76,6 +79,7 @@ end
 
 #open tcp port in firewall
 rule_name = "MSSQL: #{node['sql_server']['port']}"
+Chef::Log.info( "rule_name - #{rule_name}")
 execute 'Open tcp port for MSSQL' do
   command "netsh advfirewall firewall add rule name=\"#{rule_name}\" dir=in action=allow protocol=TCP localport=#{node['sql_server']['port']}"
   not_if "netsh advfirewall firewall show rule name=\"#{rule_name}\""

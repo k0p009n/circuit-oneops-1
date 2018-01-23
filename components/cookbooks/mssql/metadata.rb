@@ -24,7 +24,7 @@ attribute 'version',
 attribute 'feature_list',
   :description => 'Feature List',
   :required => 'required',
-  :default => 'SQLENGINE,REPLICATION,SNAC_SDK,SSMS',
+  :default => 'SQLENGINE,REPLICATION,SNAC_SDK',
   :format => {
     :help => 'Comma-separated list of features to install',
     :category => '1.Global',

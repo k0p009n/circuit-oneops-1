@@ -35,12 +35,13 @@ Chef::Log.info( "url - #{initial_url}")
 uri = URI.parse(initial_url)
 ext = File.extname(uri.to_s)
 config_file_path = "#{Chef::Config[:file_cache_path]}/ConfigurationFile.ini"
+Chef::Log.info( "config_file_path - #{config_file_path}")
 sql_sys_admin_list = if node['sql_server']['sysadmins'].is_a? Array
                        node['sql_server']['sysadmins'].map { |account| %("#{account}") }.join(' ') # surround each in quotes, space delimit list
                      else
                        %("#{node['sql_server']['sysadmins']}") # surround in quotes
                      end
-
+Chef::Log.info( "sql_sys_admin_list - #{sql_sys_admin_list}")
 
 #If URL is for ISO or zip => we need to download and unzip or mount first
 if (ext = '.zip' || ext = '.iso')
@@ -73,6 +74,7 @@ if (ext = '.zip' || ext = '.iso')
   end
 
   powershell_script 'Download SQL Server software' do
+    timeout 18000
     code <<-EOH
     $url = "#{initial_url}"
     $output_file = "#{output_file}"
@@ -80,7 +82,7 @@ if (ext = '.zip' || ext = '.iso')
     $wc = New-Object System.Net.WebClient
     $wc.DownloadFile($url, $output_file)
     EOH
-    not_if "Test-Path '#{output_file}'"
+    not_if "Test-Path '#{temp_location}/distr'"
   end
 
   powershell_script 'Extract from zipfile' do
@@ -127,6 +129,7 @@ ruby_block 'Adjust PS resource' do
   block do
 
     arglist = "-sql_version_num #{node['sql_server']['version_num']} -setup_file '#{node['sql_server']['server']['url']}' -arg_list '/q /ConfigurationFile=#{config_file_path}'"
+    Chef::Log.info( "arglist - #{arglist}")
     r = run_context.resource_collection.find(:elevated_script => 'Install-Mssql-Features')
     r.arglist(arglist)
   end #block do
@@ -166,6 +169,8 @@ end
 
 
 ps_script = "#{Chef::Config[:file_cache_path]}\\cookbooks\\mssql\\files\\windows\\Install-Mssql.ps1"
+Chef::Log.info( "ps_script - #{ps_script}")
+
 elevated_script 'Install-Mssql-Features' do
   script ps_script
   timeout 1800
@@ -175,8 +180,10 @@ end
 
 #Uninstall features
 setup_file = "#{node['sql_server']['install_dir']}\\#{node['sql_server']['version_num']}\\Setup Bootstrap\\SQLServer#{node['sql_server']['version']}\\setup.exe"
+Chef::Log.info( "setup_file - #{setup_file}")
 arglist = "-sql_version_num #{node['sql_server']['version_num']} -setup_file '#{setup_file}' "
 arglist += "-arg_list '/Action=Uninstall /Features=#{features_uninstall} /Instancename=#{node['sql_server']['instance_name']} /QUIET=\"True\"'"
+Chef::Log.info( "arglist - #{arglist}")
 
 elevated_script 'Uninstall-Mssql-Features' do
   script ps_script
